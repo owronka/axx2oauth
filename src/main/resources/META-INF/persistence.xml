@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<persistence xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://java.sun.com/xml/ns/persistence http://java.sun.com/xml/ns/persistence/persistence_2_0.xsd"
+  version="2.0" xmlns="http://java.sun.com/xml/ns/persistence">
+  <persistence-unit name="OAuth2" transaction-type="RESOURCE_LOCAL">
+    <provider>org.hibernate.ejb.HibernatePersistence</provider>
+    
+    <class>com.axxessio.oauth2.server.service.pdo.AccessToken</class>
+    <class>com.axxessio.oauth2.server.service.pdo.Right</class>
+    <class>com.axxessio.oauth2.server.service.pdo.Role</class>
+    <class>com.axxessio.oauth2.server.service.pdo.User</class>
+    
+    <properties>
+    
+      <!--  
+      <property name="javax.persistence.jdbc.driver"   							value="org.apache.derby.jdbc.EmbeddedDriver" />
+      <property name="javax.persistence.jdbc.url"      							value="jdbc:derby:memory:OAuth2DB;create=true" />
+       -->
+      <property name="javax.persistence.jdbc.driver"   							value="org.apache.derby.jdbc.ClientDriver" />
+      <property name="javax.persistence.jdbc.url"      							value="jdbc:derby://localhost:1527/C:\DerbyDB\OAuth2DB;create=true" />
+      <property name="javax.persistence.jdbc.user"     							value="oauth2_user" />
+      <property name="javax.persistence.jdbc.password" 							value="S3cr3ts!" />
+      <property name="javax.persistence.schema-generation.database.action" 		value="drop-and-create"/>
+	  <property name="javax.persistence.schema-generation.create-source" 		value="script"/>
+      <property name="javax.persistence.schema-generation.create-script-source" value="META-INF/sql/create_db.sql"/>
+	  <property name="javax.persistence.ddl-drop-script-source" 				value="META-INF/sql/drop_db.sql" />
+      <property name="javax.persistence.sql-load-script-source" 				value="META-INF/sql/init_db.sql"/>
+
+      <property name="hibernate.dialect" 										value="org.hibernate.dialect.DerbyDialect"/>
+    </properties>
+
+  </persistence-unit>
+</persistence> 
