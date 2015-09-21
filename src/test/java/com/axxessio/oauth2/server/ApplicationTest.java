@@ -15,6 +15,7 @@ import org.apache.http.auth.AuthenticationException;
 import org.apache.http.auth.UsernamePasswordCredentials;
 import org.apache.http.client.ClientProtocolException;
 import org.apache.http.client.methods.CloseableHttpResponse;
+import org.apache.http.client.methods.HttpDelete;
 import org.apache.http.client.methods.HttpGet;
 import org.apache.http.client.methods.HttpPost;
 import org.apache.http.entity.ByteArrayEntity;
@@ -28,12 +29,12 @@ import org.junit.Test;
 public class ApplicationTest {
 
 	private static final Logger logger = Logger.getLogger("ApplicationTest");
-	private CloseableHttpClient httpclient;
-	private TokenHandler th;
-	private UsernamePasswordCredentials creds;
+	private static CloseableHttpClient httpclient;
+	private static TokenHandler th;
+	private static UsernamePasswordCredentials creds;
 	
 	@BeforeClass
-	public void setUp() throws AuthenticationException, ClientProtocolException, NoSuchAlgorithmException, NoSuchProviderException, InvalidKeySpecException, URISyntaxException, IOException {
+	public static void setUp() throws AuthenticationException, ClientProtocolException, NoSuchAlgorithmException, NoSuchProviderException, InvalidKeySpecException, URISyntaxException, IOException {
 	    creds = new UsernamePasswordCredentials("system", "system");
 	    httpclient = HttpClients.createDefault();
 	    th = new TokenHandler("http://localhost:8080", "system", "system");
@@ -71,7 +72,11 @@ public class ApplicationTest {
 	
 			responseBody = response.getEntity();
 
+			// set token via body
 			th.setToken(responseBody.getContent());
+			
+			// set token via header parameter
+			th.setToken(response.getFirstHeader("Token-Value").getValue());
 			
 			// check signature is valid
 			assertTrue(th.isValid(response.getFirstHeader("Signature-Value").getValue()));
@@ -104,7 +109,7 @@ public class ApplicationTest {
 	}
 	
 	void testCheckToken() {
-		HttpGet httpGet = new HttpGet("http://localhost:8080/services/oauth2/token?access_token&" + th.getAccessToken());
+		HttpGet httpGet = new HttpGet("http://localhost:8080/services/oauth2/token?access_token=" + th.getAccessToken());
 		CloseableHttpResponse response = null; 
 	    
 	    try {
@@ -132,11 +137,74 @@ public class ApplicationTest {
 	}
 	
 	void testRefreshToken() {
-		
+		//grant_type=refresh_token&refresh_token=
+		HttpPost httpPost = new HttpPost("http://localhost:8080/services/oauth2/token");
+		CloseableHttpResponse response = null; 
+	    HttpEntity requestBody;
+	    HttpEntity responseBody;
+	    String oldAccessToken = th.getAccessToken();
+	    String oldRefreshToken = th.getRefreshToken();
+	    
+	    try {
+			httpPost.addHeader(new BasicScheme().authenticate(creds, httpPost, null));
+		    httpPost.addHeader("Accept", "application/json");
+		    httpPost.addHeader("Content-Type", "application/x-www-form-urlencoded");
+	
+		    requestBody = new ByteArrayEntity(("grant_type=refresh_token&refresh_token=" + th.getRefreshToken()).getBytes("UTF-8"));
+		    
+		    httpPost.setEntity(requestBody);
+		    
+			response = httpclient.execute(httpPost);
+	
+			responseBody = response.getEntity();
+
+			th.setToken(responseBody.getContent());
+			
+			// check signature is valid
+			assertTrue(oldRefreshToken.equals(th.getRefreshToken()));
+			assertTrue(!oldAccessToken.equals(th.getAccessToken()));
+			
+			EntityUtils.consume(responseBody);
+		    
+		} catch (AuthenticationException | IOException xcptn) {
+			logger.severe(xcptn.toString());
+		} finally {
+		    if (response != null) {
+				try {
+					response.close();
+				} catch (IOException ioxcptn) {
+					logger.severe(ioxcptn.toString());
+				}
+		    }
+		}		
 	}
 	
 	void testDeleteToken() {
+		HttpDelete httpDelete = new HttpDelete("http://localhost:8080/services/oauth2/token?refresh_token&" + th.getRefreshToken());
+		CloseableHttpResponse response = null; 
+	    
+	    try {
+			httpDelete.addHeader(new BasicScheme().authenticate(creds, httpDelete, null));
+		    httpDelete.addHeader("Accept", "application/json");
+	
+			response = httpclient.execute(httpDelete);
+	
+			StatusLine sl = response.getStatusLine();
+			
+			// Status must be 200 OK
+			assertTrue (sl.getStatusCode() == 200);
+		    
+		} catch (AuthenticationException | IOException xcptn) {
+			logger.severe(xcptn.toString());
+		} finally {
+		    if (response != null) {
+				try {
+					response.close();
+				} catch (IOException ioxcptn) {
+					logger.severe(ioxcptn.toString());
+				}
+		    }
+		}		
 		
 	}
-
 }

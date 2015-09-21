@@ -6,7 +6,6 @@ import java.math.BigInteger;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.security.InvalidKeyException;
-import java.security.KeyException;
 import java.security.KeyFactory;
 import java.security.NoSuchAlgorithmException;
 import java.security.NoSuchProviderException;
@@ -15,8 +14,6 @@ import java.security.SignatureException;
 import java.security.interfaces.DSAPublicKey;
 import java.security.spec.DSAPublicKeySpec;
 import java.security.spec.InvalidKeySpecException;
-import java.time.LocalDateTime;
-import java.time.format.DateTimeFormatter;
 import java.util.Calendar;
 import java.util.GregorianCalendar;
 import java.util.Iterator;
@@ -25,7 +22,6 @@ import java.util.Set;
 import java.util.Map.Entry;
 import java.util.logging.Logger;
 
-import com.fasterxml.jackson.core.JsonParseException;
 import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
@@ -44,6 +40,14 @@ import org.apache.shiro.codec.Base64;
 import com.axxessio.oauth2.server.controller.to.AccessTokenTO;
 import com.axxessio.oauth2.server.controller.to.PublicKeyTO;
 
+/**
+ * @author wronka
+ *
+ */
+/**
+ * @author wronka
+ *
+ */
 public class TokenHandler {
 	private static final ObjectMapper mapper = new ObjectMapper();
 
@@ -62,12 +66,22 @@ public class TokenHandler {
 
 	private UsernamePasswordCredentials creds;
 
+	/**
+	 * @param url server url e.g. http://localhost:8080"
+	 * @param usr server usr, default is 'system'
+	 * @param pwd server pwd, default is 'system'
+	 * @throws AuthenticationException
+	 * @throws URISyntaxException
+	 * @throws ClientProtocolException
+	 * @throws IOException
+	 * @throws NoSuchAlgorithmException
+	 * @throws NoSuchProviderException
+	 * @throws InvalidKeySpecException
+	 */
 	public TokenHandler(String url, String usr, String pwd) throws AuthenticationException, URISyntaxException, ClientProtocolException, IOException, NoSuchAlgorithmException, NoSuchProviderException, InvalidKeySpecException {
 		dsa = Signature.getInstance("SHA1withDSA", "SUN");
 		httpGet = new HttpGet();
 		creds = new UsernamePasswordCredentials(usr, pwd);
-
-		logger.info("Algorithm [" + dsa.getAlgorithm() +"] Provider [" + dsa.getProvider() + "]");
 
 		httpGet.addHeader(new BasicScheme().authenticate(creds, httpGet, null));
 	    httpGet.addHeader("Accept", "application/json");
@@ -85,25 +99,32 @@ public class TokenHandler {
 		BigInteger p = new BigInteger (Base64.decode(pubKey.getP()));
 		BigInteger q = new BigInteger (Base64.decode(pubKey.getQ()));
 		
-		logger.info("Y:[" + y + "] G:[" + g + "] P:[" + p + "] Q:[" + q + "]");
-		
 		DSAPublicKeySpec pks = new DSAPublicKeySpec (y, p, q, g);
 		
 		dsaPubKey = (DSAPublicKey) KeyFactory.getInstance("DSA", "SUN").generatePublic(pks);
 		
-		logger.info("Y:[" + dsaPubKey.getY() + "] G:[" + dsaPubKey.getParams().getG() + "] P:[" + dsaPubKey.getParams().getP() + "] Q:[" + dsaPubKey.getParams().getQ() + "]");
-
 		EntityUtils.consume(responseBody);
 	}
 	
+	/**
+	 * @return current access token
+	 */
 	public String getAccessToken () {
 		return ato != null ? ato.getAccess_token() : null;
 	}
 	
+	/**
+	 * @return current refresh token
+	 */
 	public String getRefreshToken () {
 		return ato != null ? ato.getRefresh_token() : null;
 	}
 	
+	/**
+	 * checks if token has valid signature  
+	 * @param signatureValue, taken from header field 'Signature-Value' 
+	 * @return true, if signature is valid
+	 */
 	public boolean isValid (String signatureValue){
 		try {
 			dsa.initVerify(dsaPubKey);
@@ -124,6 +145,10 @@ public class TokenHandler {
 		}
 	}
 		
+	/**
+	 * checks if token has valid timestamp
+	 * @return true, if timestamp is valid, otherwise call refresh token
+	 */
 	public boolean isValid (){
 		Calendar now = new GregorianCalendar();
 		Calendar created = new GregorianCalendar();
@@ -137,9 +162,15 @@ public class TokenHandler {
 		return created.after(now) ? true : false; 
 	}
 		
+	/**
+	 * validates the requested right for given scope
+	 * @param scope
+	 * @param right, must be either 'c', 'r', 'u' or 'd'
+	 * @return, true, if right is available for scope
+	 */
 	public boolean hasRight(String scope, char right) {
 		Map<String, String> scopeMap = ato.getScope();
-		String rights = scopeMap.get(scope);
+		String rights = scopeMap.get(scope).toLowerCase();
 		
 		if (rights != null) {
 			if (rights.lastIndexOf(right) != -1) {
@@ -149,21 +180,39 @@ public class TokenHandler {
 		return false;
 	}
 	
-	public boolean isOnline (AccessTokenTO ato) {
-		return true;
-	}
-
-
+	/**
+	 * inject logger if you want see internally catched exceptions
+	 * @param newLogger
+	 */
 	public void setLogger (Logger newLogger) {
 		logger = newLogger;
 	}
 
+	/**
+	 * set token by passing response body via stream
+	 * @param is
+	 * @throws IOException
+	 * @throws JsonMappingException
+	 */
 	public void setToken (InputStream is) throws IOException, JsonMappingException {
 		ato = mapper.readValue(is, AccessTokenTO.class);
-
-		System.out.println("Algorithm [" + dsaPubKey.getAlgorithm() +"] Key [" + Base64.encodeToString(dsaPubKey.getEncoded()) + "] Format [" + dsaPubKey.getFormat() + "]");
 	}
 	
+	/**
+	 * set token by passibng base64 encoded header parameter 'Token-Value'
+	 * @param token
+	 * @throws IOException
+	 * @throws JsonMappingException
+	 */
+	public void setToken (String token) throws IOException, JsonMappingException {
+		ato = mapper.readValue(Base64.decode(token), AccessTokenTO.class);
+	}
+	
+	/**
+	 * hash for signature will be created over access_token, created_at, expires_in and scope including rights
+	 * @param ato
+	 * @return
+	 */
 	private byte[] getSignedTokenValues (AccessTokenTO ato) {
 	    
 		StringBuffer sb = new StringBuffer();
