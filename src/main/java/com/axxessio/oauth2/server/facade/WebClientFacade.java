@@ -41,105 +41,13 @@ public class WebClientFacade {
 	private static final Logger logger = Logger.getLogger(TokenService.class);
 	
 	/**
-	 * This method is not part of OAuth2 specification. The intention is to delete a given token. 
-	 * This is usually be done by client.
-	 * <pre>
-	 * DELETE http://{server}:{port}/services/oauth2/token?refresh_token=5f5b1e9b9e619a880e1ff162993af3e6581161f1 HTTP/1.1
-	 * 
-	 * == Header ==
-     * Host: oauth2server.axxessio.com
-     * Accept: application/json
-     * Authorization: Basic c3lzdGVtOnN5c3RlbQ== (system:system)
-     *
-	 * @param accept
-	 * @param authorization
-	 * @param refreshToken
-	 * @param request
-	 * @return
-	 */
-	@RequestMapping(value="/token", method=RequestMethod.DELETE)
-	public ResponseEntity<?> deleteToken(@RequestHeader(value="Accept") String accept, 
-									     @RequestHeader(value="Authorization") String authorization,
-									     @RequestParam(value="refresh_token") String refreshToken,
-									     HttpServletRequest request) {
-
-		logger.info("DELETE /token - refresh_token: " + refreshToken);
-
-		// Do some validation regarding parameters
-		try {
-			new Request(accept, authorization);
-		} catch (ApplicationException axcptn) {
-			return buildStatusResponse(getResponseStatus(axcptn), axcptn.getErrorCode(), axcptn.getErrorDescription());
-		}
-		ts.deleteAccessToken(request.getSession().getId(), refreshToken);
-
-		return new ResponseEntity<String> ("token delted", HttpStatus.OK);
-	}
-	
-	/**
-	 * This method is not part of OAuth2 specification. The intention is to validate whether a given token is still valid or not. 
-	 * This is usually be done be a resource server, not by a client.
-	 * <pre>
-	 * GET http://{server}:{port}/services/oauth2/token?access_token=5f5b1e9b9e619a880e1ff162993af3e6581161f1
-	 * 
-	 * == Header ==
-     * Host: oauth2server.axxessio.com
-     * Accept: application/json
-     * Authorization: Basic czZCaGRSa3F0MzpnWDFmQmF0M2JW
-     *
-	 * @param accept
-	 * @param authorization
-	 * @param accessToken
-	 * @param request
-	 * @return
-	 */
-	@RequestMapping(value="/token", method=RequestMethod.GET)
-	public ResponseEntity<?> getToken(@RequestHeader(value="Accept") String accept, 
-						   		      @RequestHeader(value="Authorization") String authorization,
-						   		      @RequestParam(value="access_token") String accessToken) {
-
-		logger.info("GET /token - access_token: " + accessToken);
-		
-		// Do some validation regarding parameters
-		try {
-			new Request(accept, authorization);
-		} catch (ApplicationException axcptn) {
-			return buildStatusResponse(getResponseStatus(axcptn), axcptn.getErrorCode(), axcptn.getErrorDescription());
-		}
-		
-		if (ts.getAccessToken(accessToken, Enums.TOKEN_TYPE.ACCESS) == null)
-			return buildStatusResponse(HttpStatus.NOT_FOUND, 0x0004, "access_token not valid!");			
-		else
-			return new ResponseEntity<String> ("token is valid", HttpStatus.OK);
-	}
-	
-	@RequestMapping(value="/pubkey", method=RequestMethod.GET)
-	public ResponseEntity<?> getPublicKey(@RequestHeader(value="Accept") String accept, 
-									   	  @RequestHeader(value="Authorization") String authorization) {
-
-		logger.info("GET /pubkey");
-		
-		// Do some validation regarding parameters
-		try {
-			new Request(accept, authorization);
-		} catch (ApplicationException axcptn) {
-			return buildStatusResponse(getResponseStatus(axcptn), axcptn.getErrorCode(), axcptn.getErrorDescription());
-		}
-		
-		// return new ResponseEntity<PublicKeyTO> (new PublicKeyTO(AsymetricCipher.getPublicKey()), HttpStatus.OK);
-		PublicKeyTO pkto = new PublicKeyTO(AsymetricCipher.getPublicKey());
-		
-		return new ResponseEntity<PublicKeyTO>(pkto, HttpStatus.OK);
-	}
-	
-	/**
-	 * This method accepts POST requests to generate new or update existing access token. 
+	 * This method accepts POST requests to generate new or update existing access token.
+	 *  
 	 * For a new token with scope for customer and order please send the following request
 	 * <pre>
-	 * POST http://{server}:{port}/services/oauth2/token HTTP/1.1
+	 * POST http://{server}:{port}/services/oauth2/token
 	 * 
 	 * == Header ==
-     * Host: oauth2server.axxessio.com
      * Accept: application/json
      * Authorization: Basic czZCaGRSa3F0MzpnWDFmQmF0M2JW
      * Content-Type: application/x-www-form-urlencoded
@@ -150,16 +58,15 @@ public class WebClientFacade {
 	 * 
 	 * To refresh a token please send the following request
 	 * <pre>
-	 * POST http://{server}:{port}/services/oauth2/token HTTP/1.1
+	 * POST http://{server}:{port}/services/oauth2/token
 	 * 
 	 * == Header ==
-     * Host: oauth2server.axxessio.com
      * Accept: application/json
      * Authorization: Basic czZCaGRSa3F0MzpnWDFmQmF0M2JW
      * Content-Type: application/x-www-form-urlencoded
      *
      * == Body ==
-     * grant_type=refresh_token&refresh_token=5f5b1e9b9e619a880e1ff162993af3e6581161f1
+     * grant_type=refresh_token&refresh_token=############################
 	 * </pre>
 	 * @param accept
 	 * @param authorization
@@ -170,7 +77,7 @@ public class WebClientFacade {
 	 * @param refreshToken
 	 * @param username
 	 * @param request
-	 * @return
+	 * @return JSON object with access and refresh token, timestamp, scope and associated rights
 	 */
 	@RequestMapping(value="/token", method=RequestMethod.POST)
 	public ResponseEntity<?> createToken(@RequestHeader(value="Accept") String accept, 
@@ -235,6 +142,110 @@ public class WebClientFacade {
 		}
 	}
 
+	/**
+	 * This method is not part of OAuth2 specification. The intention is to delete a given token. 
+	 * This is usually be done by client.
+	 * <pre>
+	 * DELETE http://{server}:{port}/services/oauth2/token?refresh_token=############################ 
+	 * 
+	 * == Header ==
+     * Host: oauth2server.axxessio.com
+     * Accept: application/json
+     * Authorization: Basic c3lzdGVtOnN5c3RlbQ== (system:system)
+     *
+	 * @param accept
+	 * @param authorization
+	 * @param refreshToken
+	 * @param request
+	 * @return
+	 */
+	@RequestMapping(value="/token", method=RequestMethod.DELETE)
+	public ResponseEntity<?> deleteToken(@RequestHeader(value="Accept") String accept, 
+									     @RequestHeader(value="Authorization") String authorization,
+									     @RequestParam(value="refresh_token") String refreshToken,
+									     HttpServletRequest request) {
+
+		logger.info("DELETE /token - refresh_token: " + refreshToken);
+
+		// Do some validation regarding parameters
+		try {
+			new Request(accept, authorization);
+		} catch (ApplicationException axcptn) {
+			return buildStatusResponse(getResponseStatus(axcptn), axcptn.getErrorCode(), axcptn.getErrorDescription());
+		}
+		ts.deleteAccessToken(request.getSession().getId(), refreshToken);
+
+		return new ResponseEntity<String> ("token delted", HttpStatus.OK);
+	}
+	
+	/**
+	 * This method is not part of OAuth2 specification. The intention is to validate whether a given token is still valid or not. 
+	 * This is usually be done be a resource server, not by a client.
+	 * <pre>
+	 * GET http://{server}:{port}/services/oauth2/pubkey
+	 * 
+	 * == Header ==
+     * Accept: application/json
+     * Authorization: Basic czZCaGRSa3F0MzpnWDFmQmF0M2JW
+     *
+	 * @return public key for DSA algorithm in base64 encoded format.
+	 */
+	@RequestMapping(value="/pubkey", method=RequestMethod.GET)
+	public ResponseEntity<?> getPublicKey(@RequestHeader(value="Accept") String accept, 
+									   	  @RequestHeader(value="Authorization") String authorization) {
+
+		logger.info("GET /pubkey");
+		
+		// Do some validation regarding parameters
+		try {
+			new Request(accept, authorization);
+		} catch (ApplicationException axcptn) {
+			return buildStatusResponse(getResponseStatus(axcptn), axcptn.getErrorCode(), axcptn.getErrorDescription());
+		}
+		
+		// return new ResponseEntity<PublicKeyTO> (new PublicKeyTO(AsymetricCipher.getPublicKey()), HttpStatus.OK);
+		PublicKeyTO pkto = new PublicKeyTO(AsymetricCipher.getPublicKey());
+		
+		return new ResponseEntity<PublicKeyTO>(pkto, HttpStatus.OK);
+	}
+	
+	/**
+	 * This method is not part of OAuth2 specification. The intention is to validate whether a given token is still valid or not. 
+	 * This is usually be done be a resource server, not by a client.
+	 * <pre>
+	 * GET http://{server}:{port}/services/oauth2/token?access_token=############################
+	 * 
+	 * == Header ==
+     * Host: oauth2server.axxessio.com
+     * Accept: application/json
+     * Authorization: Basic czZCaGRSa3F0MzpnWDFmQmF0M2JW
+     *
+	 * @param accept
+	 * @param authorization
+	 * @param accessToken
+	 * @param request
+	 * @return
+	 */
+	@RequestMapping(value="/token", method=RequestMethod.GET)
+	public ResponseEntity<?> getToken(@RequestHeader(value="Accept") String accept, 
+						   		      @RequestHeader(value="Authorization") String authorization,
+						   		      @RequestParam(value="access_token") String accessToken) {
+
+		logger.info("GET /token - access_token: " + accessToken);
+		
+		// Do some validation regarding parameters
+		try {
+			new Request(accept, authorization);
+		} catch (ApplicationException axcptn) {
+			return buildStatusResponse(getResponseStatus(axcptn), axcptn.getErrorCode(), axcptn.getErrorDescription());
+		}
+		
+		if (ts.getAccessToken(accessToken, Enums.TOKEN_TYPE.ACCESS) == null)
+			return buildStatusResponse(HttpStatus.NOT_FOUND, 0x0004, "access_token not valid!");			
+		else
+			return new ResponseEntity<String> ("token is valid", HttpStatus.OK);
+	}
+	
 	private HttpStatus getResponseStatus (ApplicationException axcptn) {
 		return axcptn.getErrorStatus() == Request.BAD_REQUEST ? HttpStatus.BAD_REQUEST : HttpStatus.NOT_FOUND;
 	}
