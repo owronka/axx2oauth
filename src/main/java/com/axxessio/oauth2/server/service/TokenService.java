@@ -3,7 +3,6 @@ package com.axxessio.oauth2.server.service;
 import java.math.BigInteger;
 import java.security.MessageDigest;
 import java.util.Iterator;
-import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Random;
 import java.util.Set;
