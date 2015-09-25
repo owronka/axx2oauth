@@ -13,7 +13,7 @@ OAuth2 server implementing Resource Owner Password Credential Flow including fin
 This Server is a SpringBoot application. After download you can build the application by the following command line in axx2oauth root folder:
 
 <code>
-	mvn clean install spring-boot:repackage spring-boot:run -DskipTests=true
+	mvn clean install spring-boot:repackage spring-boot:run
 </code>
 
 Some master data are already included to start playing around with server immediately.
