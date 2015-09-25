@@ -98,7 +98,7 @@ public class WebClientFacade {
 			AccessToken at;
 			AccessTokenTO ato;
 
-			Request r = new Request(accept, authorization, contentType, grantType, host, password, refreshToken, scope, username);
+			Request r = new Request(accept, authorization, contentType, grantType, password, refreshToken, scope, username);
 		
 			SessionScope<String, String> sessionScope;
 			String   sessionId;

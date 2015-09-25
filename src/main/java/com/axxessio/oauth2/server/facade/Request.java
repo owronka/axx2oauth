@@ -11,7 +11,6 @@ public class Request {
 	private String authorization;
 	private String contentType;
 	private String grantType;
-	private String host;
 	private String password;
 	private String refreshToken;
 	private String scope;
@@ -30,13 +29,12 @@ public class Request {
 		}
 	}
 
-	public Request (String newAccept, String newAuthorization, String newContentType, String newGrantType, String newHost, String newPassword, 
+	public Request (String newAccept, String newAuthorization, String newContentType, String newGrantType, String newPassword, 
 			        String newRefreshToken, String newScope, String newUsername) throws ApplicationException{
 		this.accept = newAccept;
 		this.authorization = newAuthorization;
 		this.contentType = newContentType;
 		this.grantType = newGrantType;
-		this.host = newHost;
 		this.password = newPassword;
 		this.refreshToken = newRefreshToken;
 		this.scope = newScope;
