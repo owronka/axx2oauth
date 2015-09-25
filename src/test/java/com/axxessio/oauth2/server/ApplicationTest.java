@@ -23,9 +23,19 @@ import org.apache.http.impl.auth.BasicScheme;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClients;
 import org.apache.http.util.EntityUtils;
-import org.junit.BeforeClass;
+import org.junit.Before;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.test.IntegrationTest;
+import org.springframework.boot.test.SpringApplicationConfiguration;
+import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
+import org.springframework.test.context.web.WebAppConfiguration;
 
+@RunWith(SpringJUnit4ClassRunner.class)
+@SpringApplicationConfiguration(classes = Application.class)
+@IntegrationTest({"server.port=0"})
+@WebAppConfiguration
 public class ApplicationTest {
 
 	private static final Logger logger = Logger.getLogger("ApplicationTest");
@@ -33,11 +43,14 @@ public class ApplicationTest {
 	private static TokenHandler th;
 	private static UsernamePasswordCredentials creds;
 	
-	@BeforeClass
-	public static void setUp() throws AuthenticationException, ClientProtocolException, NoSuchAlgorithmException, NoSuchProviderException, InvalidKeySpecException, URISyntaxException, IOException {
+    @Value("${local.server.port}")
+    private int port;
+
+    @Before
+	public void setUp() throws AuthenticationException, ClientProtocolException, NoSuchAlgorithmException, NoSuchProviderException, InvalidKeySpecException, URISyntaxException, IOException {
 	    creds = new UsernamePasswordCredentials("system", "system");
 	    httpclient = HttpClients.createDefault();
-	    th = new TokenHandler("http://localhost:8080", "system", "system");
+	    th = new TokenHandler("http://localhost:" + port, "system", "system");
 	    
 	    th.setLogger(logger);
 	}
@@ -54,7 +67,7 @@ public class ApplicationTest {
 	}
 	
 	void testCreateToken() {
-		HttpPost httpPost = new HttpPost("http://localhost:8080/services/oauth2/token");
+		HttpPost httpPost = new HttpPost("http://localhost:" + port + "/services/oauth2/token");
 		CloseableHttpResponse response = null; 
 	    HttpEntity requestBody;
 	    HttpEntity responseBody;
@@ -109,7 +122,7 @@ public class ApplicationTest {
 	}
 	
 	void testCheckToken() {
-		HttpGet httpGet = new HttpGet("http://localhost:8080/services/oauth2/token?access_token=" + th.getAccessToken());
+		HttpGet httpGet = new HttpGet("http://localhost:" + port + "/services/oauth2/token?access_token=" + th.getAccessToken());
 		CloseableHttpResponse response = null; 
 	    
 	    try {
@@ -138,7 +151,7 @@ public class ApplicationTest {
 	
 	void testRefreshToken() {
 		//grant_type=refresh_token&refresh_token=
-		HttpPost httpPost = new HttpPost("http://localhost:8080/services/oauth2/token");
+		HttpPost httpPost = new HttpPost("http://localhost:" + port + "/services/oauth2/token");
 		CloseableHttpResponse response = null; 
 	    HttpEntity requestBody;
 	    HttpEntity responseBody;
@@ -180,7 +193,7 @@ public class ApplicationTest {
 	}
 	
 	void testDeleteToken() {
-		HttpDelete httpDelete = new HttpDelete("http://localhost:8080/services/oauth2/token?refresh_token&" + th.getRefreshToken());
+		HttpDelete httpDelete = new HttpDelete("http://localhost:" + port + "/services/oauth2/token?refresh_token&" + th.getRefreshToken());
 		CloseableHttpResponse response = null; 
 	    
 	    try {
